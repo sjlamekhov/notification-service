@@ -4,10 +4,7 @@ import com.mongodb.*;
 import com.notificationservice.model.Subscription;
 import com.notificationservice.persistence.converters.ObjectConverter;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 //MongoDB implementation
 public class MultitablePersistence {
@@ -99,6 +96,21 @@ public class MultitablePersistence {
 
     public void close() {
         mongoClient.close();
+    }
+
+    //TODO: now working only for EQ, implement for NE
+    public Collection<Subscription> getByAttributeCondition(String fields, String value) {
+        Collection<Subscription> result = new HashSet<>();
+        BasicDBObject searchQuery = new BasicDBObject();
+        searchQuery.put("conditions.field", fields);
+        searchQuery.put("conditions.value", value);
+        DBCursor cursor = collection.find(searchQuery);
+        while (cursor.hasNext()) {
+            BasicDBObject dbObject = (BasicDBObject) cursor.next();
+            result.add(converter.buildObjectFromTO(dbObject));
+        }
+        cursor.close();
+        return result;
     }
 }
 

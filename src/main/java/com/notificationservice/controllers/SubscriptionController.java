@@ -2,7 +2,7 @@ package com.notificationservice.controllers;
 
 import com.notificationservice.model.Subscription;
 import com.notificationservice.services.SubscriptionService;
-import com.notificationservice.services.ecxeptions.NotFoundException;
+import com.notificationservice.ecxeptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,7 +35,7 @@ public class SubscriptionController {
         if (null == subscription.getId()) {
             subscription.setId(UUID.randomUUID().toString());
         }
-        subscriptionService.createOrUpdate(subscription);
+        subscriptionService.create(subscription);
         return subscription;
     }
 
@@ -46,7 +46,7 @@ public class SubscriptionController {
                                @RequestBody Subscription subscription) {
         try {
             subscription.setId(subscriptionId);
-            return subscriptionService.createOrUpdate(subscription);
+            return subscriptionService.update(subscription);
         } catch (NotFoundException r) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Subscription Not Found", r);
         }

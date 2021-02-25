@@ -1,10 +1,16 @@
 package com.notificationservice.platform;
 
 import com.notificationservice.ConfigurationService;
+import com.notificationservice.consumers.kafkaConsumer.IncomingMessagesConsumer;
+import com.notificationservice.consumers.kafkaConsumer.KafkaIncomingMessageConsumer;
 import com.notificationservice.persistence.MultitablePersistence;
 import com.notificationservice.persistence.converters.SubscriptionConverter;
+import com.notificationservice.services.ConsumerService;
+import com.notificationservice.services.InformerService;
 import com.notificationservice.services.SubscriptionService;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 public class PlatformFactory {
@@ -18,9 +24,23 @@ public class PlatformFactory {
         );
         SubscriptionService subscriptionService = new SubscriptionService(multitablePersistence);
 
+        List<IncomingMessagesConsumer> incomingMessagesConsumers = Arrays.asList(
+                new KafkaIncomingMessageConsumer()
+        );
+
+        InformerService informerService = new InformerService();
+
+        ConsumerService consumerService = new ConsumerService(
+                subscriptionService,
+                informerService,
+                incomingMessagesConsumers);
+
+
         return Platform.Builder
                 .newInstance()
                 .setSubscriptionService(subscriptionService)
+                .setConsumerService(consumerService)
+                .setInformerService(informerService)
                 .build();
     }
 

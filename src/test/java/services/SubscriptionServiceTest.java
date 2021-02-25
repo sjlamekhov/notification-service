@@ -13,8 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import utils.MongoDbUtils;
 
-import java.util.Collections;
-import java.util.Properties;
+import java.util.*;
 
 public class SubscriptionServiceTest {
 
@@ -38,13 +37,19 @@ public class SubscriptionServiceTest {
         return subscriptionService;
     }
 
+    @Before
+    @After
+    public void after() {
+        MongoDbUtils.dropCollection(daoConfig.getTableName(), daoConfig);
+    }
+
     @Test
     public void createAndGetSubscriptionTest() {
         Subscription subscription = new Subscription();
         subscription.setRecipients(Collections.singletonList(new Recipient(RecipientType.EMAIL, "someAddress")));
         subscription.setConditions(Collections.singletonList(new Condition("field", ConditionType.EQ, "value")));
 
-        Subscription postedSubscription = subscriptionService.createOrUpdate(subscription);
+        Subscription postedSubscription = subscriptionService.create(subscription);
         Assert.assertNotNull(postedSubscription);
         Assert.assertNotNull(postedSubscription.getId());
 
@@ -52,10 +57,37 @@ public class SubscriptionServiceTest {
         Assert.assertEquals(subscription.getRecipients(), postedSubscription.getRecipients());
     }
 
-    @Before
-    @After
-    public void after() {
-        MongoDbUtils.dropCollection(daoConfig.getTableName(), daoConfig);
+    @Test
+    public void getSubscriptionByAttributesAndValuesTest() {
+        Subscription matchByField = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "field", ConditionType.EQ, "otherValue"
+                )));
+        subscriptionService.create(matchByField);
+        Subscription matchByValue = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "otherField", ConditionType.EQ, "value"
+                )));
+        subscriptionService.create(matchByValue);
+        Subscription completeMatch = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "field", ConditionType.EQ, "value"
+                )));
+        subscriptionService.create(completeMatch);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("field", "value");
+        Collection<String> result = subscriptionService.getSubscriptionByAttributesAndValues(attributes);
+
+        Assert.assertTrue(result.contains(completeMatch.getId()));
+        Assert.assertFalse(result.contains(matchByField.getId()));
+        Assert.assertFalse(result.contains(matchByValue.getId()));
     }
 
 }

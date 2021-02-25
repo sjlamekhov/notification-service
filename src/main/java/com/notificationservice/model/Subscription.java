@@ -10,6 +10,15 @@ public class Subscription {
 
     List<Condition> conditions;
 
+    public Subscription() {
+    }
+
+    public Subscription(String id, List<Recipient> recipients, List<Condition> conditions) {
+        this.id = id;
+        this.recipients = recipients;
+        this.conditions = conditions;
+    }
+
     public String getId() {
         return id;
     }

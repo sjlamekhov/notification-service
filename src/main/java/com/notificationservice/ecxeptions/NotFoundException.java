@@ -1,4 +1,4 @@
-package com.notificationservice.services.ecxeptions;
+package com.notificationservice.ecxeptions;
 
 public class NotFoundException extends RuntimeException {
 
