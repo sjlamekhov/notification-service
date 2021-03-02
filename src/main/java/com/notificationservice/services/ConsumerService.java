@@ -44,7 +44,7 @@ public class ConsumerService {
             Collection<String> subscriptionIds = subscriptionService.getSubscriptionByAttributesAndValues(payload);
             Collection<Subscription> subscriptionsToInform = subscriptionService.getByIds(subscriptionIds);
             for (Subscription subscription : subscriptionsToInform) {
-                informerService.sendNotofications(subscription, message);
+                informerService.sendNotifications(subscription, message);
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.notificationservice.services;
 
 import com.notificationservice.consumers.CustomMessage;
-import com.notificationservice.kafkaConsumer.consumer.ConsumerApp;
 import com.notificationservice.model.Recipient;
 import com.notificationservice.model.RecipientType;
 import com.notificationservice.model.Subscription;
@@ -21,13 +20,13 @@ public class InformerService {
 
     public InformerService() {
         recipientsAndActions = new HashMap<>();
-        recipientsAndActions.put(RecipientType.EMAIL,
-                (recipient, customMessage) -> System.out.println(
-                        String.format("Sending to %s:\t%s", recipient.getAddress(), customMessage))
-        );
     }
 
-    public void sendNotofications(Subscription subscription, CustomMessage message) {
+    public void registerConsumer(RecipientType recipientType, BiConsumer<Recipient, CustomMessage> consumer) {
+        recipientsAndActions.put(recipientType, consumer);
+    }
+
+    public void sendNotifications(Subscription subscription, CustomMessage message) {
         for (Recipient recipient : subscription.getRecipients()) {
             BiConsumer<Recipient, CustomMessage> action = recipientsAndActions.get(recipient.getRecipientType());
             if (null == action) {
