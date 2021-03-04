@@ -34,9 +34,9 @@ public class MultitablePersistence {
         this.collection = database.getCollection(configuration.getTableName());
     }
 
-    public boolean isIdPresented(String objectId) {
+    public boolean isIdPresented(String subscriptionId) {
         BasicDBObject searchQuery = new BasicDBObject();
-        searchQuery.put("_id", objectId);
+        searchQuery.put("_id", subscriptionId);
         DBCursor cursor = collection.find(searchQuery);
         boolean result = cursor.hasNext();
         cursor.close();
@@ -44,17 +44,17 @@ public class MultitablePersistence {
     }
 
 
-    public Subscription add(Subscription object) {
-        Objects.requireNonNull(object);
-        BasicDBObject dbObject = converter.buildToFromObject(object);
+    public Subscription add(Subscription subscription) {
+        Objects.requireNonNull(subscription);
+        BasicDBObject dbObject = converter.buildToFromObject(subscription);
         collection.insert(dbObject);
         return converter.buildObjectFromTO(dbObject);
     }
 
-    public Subscription update(Subscription object) {
-        Objects.requireNonNull(object);
-        String _id = object.getId();
-        BasicDBObject dbObject = converter.buildToFromObject(object);
+    public Subscription update(Subscription subscription) {
+        Objects.requireNonNull(subscription);
+        String _id = subscription.getId();
+        BasicDBObject dbObject = converter.buildToFromObject(subscription);
         collection.update(
                 new BasicDBObject("_id", _id),
                 new BasicDBObject("$set", dbObject)
@@ -63,9 +63,9 @@ public class MultitablePersistence {
         return converter.buildObjectFromTO(dbObject);
     }
 
-    public Subscription getById(String objectId) {
+    public Subscription getById(String subscriptionId) {
         BasicDBObject searchQuery = new BasicDBObject();
-        searchQuery.put("_id", objectId);
+        searchQuery.put("_id", subscriptionId);
         DBCursor cursor = collection.find(searchQuery);
         if (cursor.hasNext()) {
             BasicDBObject dbObject = (BasicDBObject) cursor.next();
@@ -76,7 +76,7 @@ public class MultitablePersistence {
         return null;
     }
 
-    public Collection<Subscription> getByUris(Collection<String> ids) {
+    public Collection<Subscription> getByIds(Collection<String> ids) {
         BasicDBObject searchQuery = new BasicDBObject("_id", new BasicDBObject("$in", ids));
         DBCursor cursor = collection.find(searchQuery);
         List<Subscription> result = new ArrayList<>();
@@ -99,11 +99,24 @@ public class MultitablePersistence {
     }
 
     //TODO: now working only for EQ, implement for NE
-    public Collection<Subscription> getByAttributeCondition(String fields, String value) {
+    public Collection<Subscription> getByAttributeCondition(String field, String value) {
         Collection<Subscription> result = new HashSet<>();
-        BasicDBObject searchQuery = new BasicDBObject();
-        searchQuery.put("conditions.field", fields);
-        searchQuery.put("conditions.value", value);
+
+        BasicDBObject subQueryEq = new BasicDBObject();
+        subQueryEq.put("conditions.field", field);
+        subQueryEq.put("conditions.conditionType", "EQ");
+        subQueryEq.put("conditions.value", value);
+
+        BasicDBObject subQueryNeq = new BasicDBObject();
+        subQueryNeq.put("conditions.field", field);
+        subQueryNeq.put("conditions.conditionType", "NE");
+
+        BasicDBList orList = new BasicDBList();
+        orList.add(subQueryEq);
+        orList.add(subQueryNeq );
+
+        BasicDBObject searchQuery=  new BasicDBObject("$or", orList);
+
         DBCursor cursor = collection.find(searchQuery);
         while (cursor.hasNext()) {
             BasicDBObject dbObject = (BasicDBObject) cursor.next();

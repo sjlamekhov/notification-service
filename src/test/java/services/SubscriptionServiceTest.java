@@ -58,7 +58,7 @@ public class SubscriptionServiceTest {
     }
 
     @Test
-    public void getSubscriptionByAttributesAndValuesTest() {
+    public void getSubscriptionByAttributesAndValuesEqTest() {
         Subscription matchByField = new Subscription(
                 UUID.randomUUID().toString(),
                 Collections.emptyList(),
@@ -88,6 +88,35 @@ public class SubscriptionServiceTest {
         Assert.assertTrue(result.contains(completeMatch.getId()));
         Assert.assertFalse(result.contains(matchByField.getId()));
         Assert.assertFalse(result.contains(matchByValue.getId()));
+    }
+
+    @Test
+    public void getSubscriptionByAttributesAndValuesNeqTest() {
+        Subscription matchByFieldEq = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "field1", ConditionType.EQ, "value"
+                )));
+        subscriptionService.create(matchByFieldEq);
+
+        Subscription matchByFieldNeq = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "field1", ConditionType.NE, "value"
+                )));
+        subscriptionService.create(matchByFieldNeq);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("field1", "neqValue");
+        attributes.put("field2", "someValue");
+
+        Collection<String> result = subscriptionService.getSubscriptionByAttributesAndValues(attributes);
+
+        Assert.assertEquals(1, result.size());
+        Assert.assertFalse(result.contains(matchByFieldEq.getId()));
+        Assert.assertTrue(result.contains(matchByFieldNeq.getId()));
     }
 
 }

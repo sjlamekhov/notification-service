@@ -8,7 +8,6 @@ import com.notificationservice.ecxeptions.NotFoundException;
 
 import java.util.*;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 public class SubscriptionService {
 
@@ -38,7 +37,7 @@ public class SubscriptionService {
     }
 
     public Collection<Subscription> getByIds(Collection<String> ids) {
-        return multitablePersistence.getByUris(ids);
+        return multitablePersistence.getByIds(ids);
     }
 
     //TODO: implement support of NE conditions
