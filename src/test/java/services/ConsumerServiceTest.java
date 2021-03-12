@@ -5,7 +5,7 @@ import com.notificationservice.consumers.CustomMessage;
 import com.notificationservice.model.*;
 import com.notificationservice.persistence.DaoConfig;
 import com.notificationservice.persistence.MultitablePersistence;
-import com.notificationservice.persistence.converters.SubscriptionConverter;
+import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
 import com.notificationservice.services.SubscriptionService;
@@ -34,7 +34,7 @@ public class ConsumerServiceTest {
         DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
         MultitablePersistence multitablePersistence = new MultitablePersistence(
                 daoConfig,
-                new SubscriptionConverter()
+                new SubscriptionDocumentConverter()
         );
         this.daoConfig = daoConfig;
         this.subscriptionService = new SubscriptionService(multitablePersistence);

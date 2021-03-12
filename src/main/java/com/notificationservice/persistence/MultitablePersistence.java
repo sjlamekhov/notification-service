@@ -1,21 +1,27 @@
 package com.notificationservice.persistence;
 
-import com.mongodb.*;
-import com.notificationservice.model.Subscription;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.*;
+import com.mongodb.client.model.Filters;
+import com.notificationservice.model.*;
 import com.notificationservice.persistence.converters.ObjectConverter;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 //MongoDB implementation
 public class MultitablePersistence {
 
     protected final DaoConfig configuration;
-    protected final ObjectConverter<Subscription, BasicDBObject> converter;
-    protected DBCollection collection;
-    protected MongoClient mongoClient;
+    protected final ObjectConverter<Subscription, Document> converter;
+    private MongoClient client;
+    private MongoCollection<Document> collection;
+
 
     public MultitablePersistence(DaoConfig configuration,
-                                 ObjectConverter<Subscription, BasicDBObject> converter) {
+                                 ObjectConverter<Subscription, Document> converter) {
         this.configuration = configuration;
         this.converter = converter;
         init();
@@ -26,80 +32,81 @@ public class MultitablePersistence {
         if (null == fromConfig) {
             fromConfig = "localhost:27017";
         }
-        String[] hostAndPortFromConfig = fromConfig.split(":");
-        String host = hostAndPortFromConfig[0];
-        int port = Integer.parseInt(hostAndPortFromConfig[1]);
-        this.mongoClient = new MongoClient(host, port);
-        DB database = mongoClient.getDB(configuration.getDbName());
-        this.collection = database.getCollection(configuration.getTableName());
-    }
+        this.client = MongoClients.create(
+                "mongodb://" + fromConfig
+        );
+        MongoDatabase database = client.getDatabase(configuration.getDbName());
+        this.collection =
+                database.getCollection(configuration.getTableName());
 
-    public boolean isIdPresented(String subscriptionId) {
-        BasicDBObject searchQuery = new BasicDBObject();
-        searchQuery.put("_id", subscriptionId);
-        DBCursor cursor = collection.find(searchQuery);
-        boolean result = cursor.hasNext();
-        cursor.close();
-        return result;
     }
-
 
     public Subscription add(Subscription subscription) {
         Objects.requireNonNull(subscription);
-        BasicDBObject dbObject = converter.buildToFromObject(subscription);
-        collection.insert(dbObject);
+        Document dbObject = converter.buildToFromObject(subscription);
+        collection.insertOne(dbObject);
         return converter.buildObjectFromTO(dbObject);
     }
 
     public Subscription update(Subscription subscription) {
         Objects.requireNonNull(subscription);
         String _id = subscription.getId();
-        BasicDBObject dbObject = converter.buildToFromObject(subscription);
-        collection.update(
-                new BasicDBObject("_id", _id),
-                new BasicDBObject("$set", dbObject)
-        );
+        Document query = new Document();
+        query.put("_id", _id);
+        Document dbObject = converter.buildToFromObject(subscription);
         dbObject.put("_id", _id);
+        collection.updateOne(
+                query, dbObject
+        );
         return converter.buildObjectFromTO(dbObject);
     }
 
     public Subscription getById(String subscriptionId) {
         BasicDBObject searchQuery = new BasicDBObject();
         searchQuery.put("_id", subscriptionId);
-        DBCursor cursor = collection.find(searchQuery);
-        if (cursor.hasNext()) {
-            BasicDBObject dbObject = (BasicDBObject) cursor.next();
-            cursor.close();
-            return converter.buildObjectFromTO(dbObject);
+        FindIterable<Document> result = collection.find(searchQuery);
+        Subscription subscriptionResult = null;
+        for (Document document : result) {
+            subscriptionResult = converter.buildObjectFromTO(document);
+            break;
         }
-        cursor.close();
-        return null;
+        return subscriptionResult;
     }
 
     public Collection<Subscription> getByIds(Collection<String> ids) {
         BasicDBObject searchQuery = new BasicDBObject("_id", new BasicDBObject("$in", ids));
-        DBCursor cursor = collection.find(searchQuery);
-        List<Subscription> result = new ArrayList<>();
-        while (cursor.hasNext()) {
-            BasicDBObject dbObject = (BasicDBObject) cursor.next();
-            result.add(converter.buildObjectFromTO(dbObject));
+        FindIterable<Document> result = collection.find(searchQuery);
+        List<Subscription> subscriptions = new ArrayList<>();
+        for (Document document : result) {
+            subscriptions.add(converter.buildObjectFromTO(document));
         }
-        cursor.close();
-        return result;
+        return subscriptions;
+    }
+
+    public boolean isIdPresented(String subscriptionId) {
+        BasicDBObject searchQuery = new BasicDBObject();
+        searchQuery.put("_id", subscriptionId);
+        FindIterable<Document> iterable = collection.find(searchQuery);
+        for (Document document : iterable) {
+            return true;
+        }
+        return false;
     }
 
     public void deleteObject(String id) {
         BasicDBObject deleteQuery = new BasicDBObject();
         deleteQuery.put("_id", id);
-        collection.remove(deleteQuery);
+        collection.deleteOne(deleteQuery);
     }
 
     public void close() {
-        mongoClient.close();
+        client.close();
     }
 
-    //TODO: now working only for EQ, implement for NE
-    public Collection<Subscription> getByAttributeCondition(String field, String value) {
+    public Collection<Subscription> getByAttributeConditionInnerAttributes(
+            String field,
+            String value,
+            Predicate<Subscription> subscriptionPredicate) {
         Collection<Subscription> result = new HashSet<>();
 
         BasicDBObject subQueryEq = new BasicDBObject();
@@ -111,19 +118,47 @@ public class MultitablePersistence {
         subQueryNeq.put("conditions.field", field);
         subQueryNeq.put("conditions.conditionType", "NE");
 
-        BasicDBList orList = new BasicDBList();
-        orList.add(subQueryEq);
-        orList.add(subQueryNeq );
-
-        BasicDBObject searchQuery=  new BasicDBObject("$or", orList);
-
-        DBCursor cursor = collection.find(searchQuery);
-        while (cursor.hasNext()) {
-            BasicDBObject dbObject = (BasicDBObject) cursor.next();
-            result.add(converter.buildObjectFromTO(dbObject));
+        FindIterable<Document> findIterable = collection.find(Filters.or(
+               Filters.or(subQueryEq, subQueryNeq)
+        ));
+        for (Document document : findIterable) {
+            Subscription converted = converter.buildObjectFromTO(document);
+            if (subscriptionPredicate.test(converted)) {
+                result.add(converted);
+            }
         }
-        cursor.close();
+
         return result;
     }
+
+    public Collection<Subscription> getByAttributeConditionOuterAttributes(
+            Map<String, Object> attributesAndValues,
+            Predicate<Subscription> subscriptionPredicate) {
+        Collection<Subscription> result = new HashSet<>();
+
+        Bson[] fieldsQueries = new Bson[attributesAndValues.keySet().size() + 1];
+        fieldsQueries[0] = new BasicDBObject("conditionType", "NE");
+        int counter = 1;
+        for (String attribute : attributesAndValues.keySet()) {
+            fieldsQueries[counter] = Filters.not(new BasicDBObject("field", attribute));
+            counter++;
+        }
+
+        FindIterable<Document> findIterable = collection.find(Filters.or(
+                Filters.elemMatch("conditions",
+                        Filters.and(
+                                fieldsQueries
+                        ))
+        ));
+
+        for (Document document : findIterable) {
+            Subscription converted = converter.buildObjectFromTO(document);
+            if (subscriptionPredicate.test(converted)) {
+                result.add(converted);
+            }
+        }
+        return result;
+    }
+
 }
 

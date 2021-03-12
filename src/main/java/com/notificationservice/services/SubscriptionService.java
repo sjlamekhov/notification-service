@@ -8,6 +8,8 @@ import com.notificationservice.ecxeptions.NotFoundException;
 
 import java.util.*;
 import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class SubscriptionService {
 
@@ -40,35 +42,32 @@ public class SubscriptionService {
         return multitablePersistence.getByIds(ids);
     }
 
-    //TODO: implement support of NE conditions
-    public Collection<String> getSubscriptionByAttributesAndValues(Map<String, Object> attributes) {
+    public Collection<String> getSubscriptionByAttributesAndValues(Map<String, Object> attributesAndValues) {
         Set<String> result = new HashSet<>();
-        for (Map.Entry<String, Object> attributeItem : attributes.entrySet()) {
+        Predicate<Subscription> subscriptionPredicate = s -> isSubscriptionAppliable.test(s, attributesAndValues);
+        for (Map.Entry<String, Object> attributeItem : attributesAndValues.entrySet()) {
             if (!(attributeItem.getValue() instanceof String)) {
                 continue;
             }
-            Collection<Subscription> subscriptions = multitablePersistence.getByAttributeCondition(
+            Collection<Subscription> subscriptions = multitablePersistence.getByAttributeConditionInnerAttributes(
                     attributeItem.getKey(),
-                    (String) attributeItem.getValue()
+                    (String) attributeItem.getValue(),
+                    subscriptionPredicate
             );
-            Collection<String> filteredIds = filterSubscriptionsByAttributes(subscriptions, attributes);
-            result.addAll(filteredIds);
+            result.addAll(subscriptions.stream()
+                    .map(Subscription::getId)
+                    .collect(Collectors.toSet()));
         }
+
+        Collection<Subscription> subscriptions = multitablePersistence.getByAttributeConditionOuterAttributes(attributesAndValues, subscriptionPredicate);
+        result.addAll(subscriptions.stream()
+                .map(Subscription::getId)
+                .collect(Collectors.toSet()));
+
         return result;
     }
 
-    private Collection<String> filterSubscriptionsByAttributes(Collection<Subscription> subscriptions,
-                                                               Map<String, Object> attributes) {
-        Collection<String> ids = new HashSet<>();
-        for (Subscription subscription : subscriptions) {
-            if (isSubscriptionAppliable.test(subscription, attributes)) {
-                ids.add(subscription.getId());
-            }
-        }
-        return ids;
-    }
-
-    BiPredicate<Subscription, Map<String, Object>> isSubscriptionAppliable = (subscription, attributes) -> {
+    public static BiPredicate<Subscription, Map<String, Object>> isSubscriptionAppliable = (subscription, attributes) -> {
         if (subscription.getConditions() == null ||subscription.getConditions().isEmpty()) {
             return false;
         }

@@ -4,7 +4,7 @@ import com.notificationservice.ConfigurationService;
 import com.notificationservice.model.*;
 import com.notificationservice.persistence.DaoConfig;
 import com.notificationservice.persistence.MultitablePersistence;
-import com.notificationservice.persistence.converters.SubscriptionConverter;
+import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.SubscriptionService;
 import com.notificationservice.utils.FileUtils;
 import org.junit.After;
@@ -30,7 +30,7 @@ public class SubscriptionServiceTest {
         DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
         MultitablePersistence multitablePersistence = new MultitablePersistence(
                 daoConfig,
-                new SubscriptionConverter()
+                new SubscriptionDocumentConverter()
         );
         SubscriptionService subscriptionService = new SubscriptionService(multitablePersistence);
         this.daoConfig = daoConfig;
@@ -116,6 +116,26 @@ public class SubscriptionServiceTest {
 
         Assert.assertEquals(1, result.size());
         Assert.assertFalse(result.contains(matchByFieldEq.getId()));
+        Assert.assertTrue(result.contains(matchByFieldNeq.getId()));
+    }
+
+    @Test
+    public void getSubscriptionByAttributesAndValuesAllNeqTest() {
+        Subscription matchByFieldNeq = new Subscription(
+                UUID.randomUUID().toString(),
+                Collections.emptyList(),
+                Collections.singletonList(new Condition(
+                        "field", ConditionType.NE, "value"
+                )));
+        subscriptionService.create(matchByFieldNeq);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("field1", "value1");
+        attributes.put("field2", "value2");
+
+        Collection<String> result = subscriptionService.getSubscriptionByAttributesAndValues(attributes);
+
+        Assert.assertEquals(1, result.size());
         Assert.assertTrue(result.contains(matchByFieldNeq.getId()));
     }
 

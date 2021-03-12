@@ -5,7 +5,7 @@ import com.notificationservice.consumers.kafkaConsumer.IncomingMessagesConsumer;
 import com.notificationservice.consumers.kafkaConsumer.KafkaIncomingMessageConsumer;
 import com.notificationservice.model.RecipientType;
 import com.notificationservice.persistence.MultitablePersistence;
-import com.notificationservice.persistence.converters.SubscriptionConverter;
+import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
 import com.notificationservice.services.SubscriptionService;
@@ -21,7 +21,7 @@ public class PlatformFactory {
 
         MultitablePersistence multitablePersistence = new MultitablePersistence(
                 configurationService.getSubscriptionsDaoConfig(),
-                new SubscriptionConverter()
+                new SubscriptionDocumentConverter()
         );
         SubscriptionService subscriptionService = new SubscriptionService(multitablePersistence);
 
