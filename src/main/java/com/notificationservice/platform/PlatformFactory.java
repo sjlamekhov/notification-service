@@ -4,7 +4,7 @@ import com.notificationservice.ConfigurationService;
 import com.notificationservice.consumers.kafkaConsumer.IncomingMessagesConsumer;
 import com.notificationservice.consumers.kafkaConsumer.KafkaIncomingMessageConsumer;
 import com.notificationservice.model.RecipientType;
-import com.notificationservice.persistence.MultitablePersistence;
+import com.notificationservice.persistence.MongoDbNotificationPersistence;
 import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
@@ -19,11 +19,11 @@ public class PlatformFactory {
     public static Platform buildPlatformFromConfig(Properties properties) {
         ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
 
-        MultitablePersistence multitablePersistence = new MultitablePersistence(
+        MongoDbNotificationPersistence mongoDbNotificationPersistence = new MongoDbNotificationPersistence(
                 configurationService.getSubscriptionsDaoConfig(),
                 new SubscriptionDocumentConverter()
         );
-        SubscriptionService subscriptionService = new SubscriptionService(multitablePersistence);
+        SubscriptionService subscriptionService = new SubscriptionService(mongoDbNotificationPersistence);
 
         List<IncomingMessagesConsumer> incomingMessagesConsumers = Arrays.asList(
                 new KafkaIncomingMessageConsumer()

@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 //MongoDB implementation
-public class MultitablePersistence {
+public class MongoDbNotificationPersistence implements NotificationPersistence {
 
     protected final DaoConfig configuration;
     protected final ObjectConverter<Subscription, Document> converter;
@@ -20,8 +20,8 @@ public class MultitablePersistence {
     private MongoCollection<Document> collection;
 
 
-    public MultitablePersistence(DaoConfig configuration,
-                                 ObjectConverter<Subscription, Document> converter) {
+    public MongoDbNotificationPersistence(DaoConfig configuration,
+                                          ObjectConverter<Subscription, Document> converter) {
         this.configuration = configuration;
         this.converter = converter;
         init();
@@ -41,6 +41,7 @@ public class MultitablePersistence {
 
     }
 
+    @Override
     public Subscription add(Subscription subscription) {
         Objects.requireNonNull(subscription);
         Document dbObject = converter.buildToFromObject(subscription);
@@ -48,6 +49,7 @@ public class MultitablePersistence {
         return converter.buildObjectFromTO(dbObject);
     }
 
+    @Override
     public Subscription update(Subscription subscription) {
         Objects.requireNonNull(subscription);
         String _id = subscription.getId();
@@ -61,6 +63,7 @@ public class MultitablePersistence {
         return converter.buildObjectFromTO(dbObject);
     }
 
+    @Override
     public Subscription getById(String subscriptionId) {
         BasicDBObject searchQuery = new BasicDBObject();
         searchQuery.put("_id", subscriptionId);
@@ -73,6 +76,7 @@ public class MultitablePersistence {
         return subscriptionResult;
     }
 
+    @Override
     public Collection<Subscription> getByIds(Collection<String> ids) {
         BasicDBObject searchQuery = new BasicDBObject("_id", new BasicDBObject("$in", ids));
         FindIterable<Document> result = collection.find(searchQuery);
@@ -83,6 +87,7 @@ public class MultitablePersistence {
         return subscriptions;
     }
 
+    @Override
     public boolean isIdPresented(String subscriptionId) {
         BasicDBObject searchQuery = new BasicDBObject();
         searchQuery.put("_id", subscriptionId);
@@ -93,16 +98,19 @@ public class MultitablePersistence {
         return false;
     }
 
+    @Override
     public void deleteObject(String id) {
         BasicDBObject deleteQuery = new BasicDBObject();
         deleteQuery.put("_id", id);
         collection.deleteOne(deleteQuery);
     }
 
+    @Override
     public void close() {
         client.close();
     }
 
+    @Override
     public Collection<Subscription> getByAttributeConditionInnerAttributes(
             String field,
             String value,
@@ -131,6 +139,7 @@ public class MultitablePersistence {
         return result;
     }
 
+    @Override
     public Collection<Subscription> getByAttributeConditionOuterAttributes(
             Map<String, Object> attributesAndValues,
             Predicate<Subscription> subscriptionPredicate) {

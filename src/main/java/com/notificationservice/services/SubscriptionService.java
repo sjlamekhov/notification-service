@@ -3,8 +3,8 @@ package com.notificationservice.services;
 import com.notificationservice.model.Condition;
 import com.notificationservice.model.ConditionType;
 import com.notificationservice.model.Subscription;
-import com.notificationservice.persistence.MultitablePersistence;
 import com.notificationservice.ecxeptions.NotFoundException;
+import com.notificationservice.persistence.NotificationPersistence;
 
 import java.util.*;
 import java.util.function.BiPredicate;
@@ -13,33 +13,33 @@ import java.util.stream.Collectors;
 
 public class SubscriptionService {
 
-    protected final MultitablePersistence multitablePersistence;
+    protected final NotificationPersistence notificationPersistence;
 
-    public SubscriptionService(MultitablePersistence multitablePersistence) {
-        this.multitablePersistence = multitablePersistence;
+    public SubscriptionService(NotificationPersistence notificationPersistence) {
+        this.notificationPersistence = notificationPersistence;
     }
 
     public Subscription create(Subscription object) {
-        return multitablePersistence.add(object);
+        return notificationPersistence.add(object);
     }
 
     public Subscription update(Subscription object) {
-        return multitablePersistence.update(object);
+        return notificationPersistence.update(object);
     }
 
     public boolean isIdPresented(String id) {
-        return multitablePersistence.isIdPresented(id);
+        return notificationPersistence.isIdPresented(id);
     }
 
     public Subscription getObject(String id) {
         if (!isIdPresented(id)) {
             throw new NotFoundException(String.format("Object with id %s does not exist", id));
         }
-        return multitablePersistence.getById(id);
+        return notificationPersistence.getById(id);
     }
 
     public Collection<Subscription> getByIds(Collection<String> ids) {
-        return multitablePersistence.getByIds(ids);
+        return notificationPersistence.getByIds(ids);
     }
 
     public Collection<String> getSubscriptionByAttributesAndValues(Map<String, Object> attributesAndValues) {
@@ -49,7 +49,7 @@ public class SubscriptionService {
             if (!(attributeItem.getValue() instanceof String)) {
                 continue;
             }
-            Collection<Subscription> subscriptions = multitablePersistence.getByAttributeConditionInnerAttributes(
+            Collection<Subscription> subscriptions = notificationPersistence.getByAttributeConditionInnerAttributes(
                     attributeItem.getKey(),
                     (String) attributeItem.getValue(),
                     subscriptionPredicate
@@ -59,7 +59,7 @@ public class SubscriptionService {
                     .collect(Collectors.toSet()));
         }
 
-        Collection<Subscription> subscriptions = multitablePersistence.getByAttributeConditionOuterAttributes(attributesAndValues, subscriptionPredicate);
+        Collection<Subscription> subscriptions = notificationPersistence.getByAttributeConditionOuterAttributes(attributesAndValues, subscriptionPredicate);
         result.addAll(subscriptions.stream()
                 .map(Subscription::getId)
                 .collect(Collectors.toSet()));
@@ -98,12 +98,12 @@ public class SubscriptionService {
     };
 
     public boolean deleteObject(String id) {
-        multitablePersistence.deleteObject(id);
+        notificationPersistence.deleteObject(id);
         return true;
     }
 
     public void close() {
-        multitablePersistence.close();
+        notificationPersistence.close();
     }
 
 

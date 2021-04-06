@@ -1,12 +1,8 @@
-package services;
+package services.subscriptionService;
 
-import com.notificationservice.ConfigurationService;
 import com.notificationservice.model.*;
 import com.notificationservice.persistence.DaoConfig;
-import com.notificationservice.persistence.MultitablePersistence;
-import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.SubscriptionService;
-import com.notificationservice.utils.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,33 +11,20 @@ import utils.MongoDbUtils;
 
 import java.util.*;
 
-public class SubscriptionServiceTest {
+public abstract class SubscriptionServiceTest {
 
-    private final SubscriptionService subscriptionService;
-    private DaoConfig daoConfig;
+    protected final SubscriptionService subscriptionService;
+    protected DaoConfig daoConfig;
 
     public SubscriptionServiceTest() {
         this.subscriptionService = getSubscriptionService();
     }
 
-    protected SubscriptionService getSubscriptionService() {
-        Properties properties = FileUtils.propertiesFromResource("mongodb.properties");
-        ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
-        DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
-        MultitablePersistence multitablePersistence = new MultitablePersistence(
-                daoConfig,
-                new SubscriptionDocumentConverter()
-        );
-        SubscriptionService subscriptionService = new SubscriptionService(multitablePersistence);
-        this.daoConfig = daoConfig;
-        return subscriptionService;
-    }
+    protected abstract SubscriptionService getSubscriptionService();
 
     @Before
     @After
-    public void after() {
-        MongoDbUtils.dropCollection(daoConfig.getTableName(), daoConfig);
-    }
+    public abstract void after();
 
     @Test
     public void createAndGetSubscriptionTest() {

@@ -1,10 +1,10 @@
-package services;
+package services.consumerService;
 
 import com.notificationservice.ConfigurationService;
-import com.notificationservice.consumers.CustomMessage;
-import com.notificationservice.model.*;
+import com.notificationservice.model.RecipientType;
 import com.notificationservice.persistence.DaoConfig;
-import com.notificationservice.persistence.MultitablePersistence;
+import com.notificationservice.persistence.MongoDbNotificationPersistence;
+import com.notificationservice.persistence.NotificationPersistence;
 import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
@@ -12,32 +12,25 @@ import com.notificationservice.services.SubscriptionService;
 import com.notificationservice.utils.FileUtils;
 import mocks.IncomingMessagesConsumerMock;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import utils.MongoDbUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Properties;
 
-public class ConsumerServiceTest {
-
-    private DaoConfig daoConfig;
-    protected SubscriptionService subscriptionService;
-    protected InformerService informerService;
-    protected IncomingMessagesConsumerMock incomingMessagesConsumerMock;
-    protected ConsumerService consumerService;
-    private List<String> fromInformerService;
+public class MongoDbConsumerServiceTest extends ConsumerServiceTest {
 
     protected void init() {
         Properties properties = FileUtils.propertiesFromResource("mongodb.properties");
         ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
         DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
-        MultitablePersistence multitablePersistence = new MultitablePersistence(
+        NotificationPersistence mongoDbNotificationPersistence = new MongoDbNotificationPersistence(
                 daoConfig,
                 new SubscriptionDocumentConverter()
         );
         this.daoConfig = daoConfig;
-        this.subscriptionService = new SubscriptionService(multitablePersistence);
+        this.subscriptionService = new SubscriptionService(mongoDbNotificationPersistence);
         this.informerService = new InformerService();
         this.fromInformerService = new ArrayList<>();
         informerService.registerConsumer(RecipientType.EMAIL,
@@ -53,25 +46,6 @@ public class ConsumerServiceTest {
                 informerService,
                 Collections.singletonList(incomingMessagesConsumerMock)
         );
-    }
-
-    @Test
-    public void testOfEmailing() {
-        subscriptionService.create(new Subscription(
-                UUID.randomUUID().toString(),
-                Collections.singletonList(new Recipient(RecipientType.EMAIL, "#email#")),
-                Collections.singletonList(new Condition("field", ConditionType.EQ, "value"))
-        ));
-        incomingMessagesConsumerMock.addMessages(Arrays.asList(new CustomMessage(
-                UUID.randomUUID().toString(), "type",
-                new HashMap() {{
-                    put("field", "value");
-                    put("email", "emailAddress");
-                }})));
-        consumerService.scheduledActivity();
-        Assert.assertEquals(1, fromInformerService.size());
-        Assert.assertEquals("Sending to emailAddress:\t{field=value, email=emailAddress}",
-                fromInformerService.iterator().next());
     }
 
     @Before
