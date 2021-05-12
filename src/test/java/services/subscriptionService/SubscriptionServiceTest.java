@@ -98,8 +98,8 @@ public abstract class SubscriptionServiceTest {
         Collection<String> result = subscriptionService.getSubscriptionByAttributesAndValues(attributes);
 
         Assert.assertEquals(1, result.size());
-        Assert.assertFalse(result.contains(matchByFieldEq.getId()));
         Assert.assertTrue(result.contains(matchByFieldNeq.getId()));
+        Assert.assertFalse(result.contains(matchByFieldEq.getId()));
     }
 
     @Test
@@ -108,7 +108,7 @@ public abstract class SubscriptionServiceTest {
                 UUID.randomUUID().toString(),
                 Collections.emptyList(),
                 Collections.singletonList(new Condition(
-                        "field", ConditionType.NE, "value"
+                        "field", ConditionType.NEQ_OR_NULL, "value"
                 )));
         subscriptionService.create(matchByFieldNeq);
 

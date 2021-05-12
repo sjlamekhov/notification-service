@@ -2,7 +2,7 @@ package services.subscriptionService;
 
 import com.notificationservice.ConfigurationService;
 import com.notificationservice.persistence.DaoConfig;
-import com.notificationservice.persistence.MongoDbNotificationPersistence;
+import com.notificationservice.persistence.mongoDbSubscriptionPersistence.MongoDbSubscriptionPersistence;
 import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.SubscriptionService;
 import com.notificationservice.utils.FileUtils;
@@ -16,7 +16,7 @@ public class MongoDbSubscriptionServiceTest extends SubscriptionServiceTest {
         Properties properties = FileUtils.propertiesFromResource("mongodb.properties");
         ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
         DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
-        MongoDbNotificationPersistence mongoDbNotificationPersistence = new MongoDbNotificationPersistence(
+        MongoDbSubscriptionPersistence mongoDbNotificationPersistence = new MongoDbSubscriptionPersistence(
                 daoConfig,
                 new SubscriptionDocumentConverter()
         );

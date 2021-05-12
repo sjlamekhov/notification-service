@@ -1,18 +1,21 @@
-package com.notificationservice.persistence;
+package com.notificationservice.persistence.mongoDbSubscriptionPersistence;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.notificationservice.model.*;
+import com.notificationservice.persistence.DaoConfig;
 import com.notificationservice.persistence.converters.ObjectConverter;
+import com.notificationservice.persistence.SubscriptionPersistence;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 //MongoDB implementation
-public class MongoDbNotificationPersistence implements NotificationPersistence {
+public class MongoDbSubscriptionPersistence implements SubscriptionPersistence {
 
     protected final DaoConfig configuration;
     protected final ObjectConverter<Subscription, Document> converter;
@@ -20,7 +23,7 @@ public class MongoDbNotificationPersistence implements NotificationPersistence {
     private MongoCollection<Document> collection;
 
 
-    public MongoDbNotificationPersistence(DaoConfig configuration,
+    public MongoDbSubscriptionPersistence(DaoConfig configuration,
                                           ObjectConverter<Subscription, Document> converter) {
         this.configuration = configuration;
         this.converter = converter;
@@ -106,11 +109,20 @@ public class MongoDbNotificationPersistence implements NotificationPersistence {
     }
 
     @Override
+    public Collection<String> getSubscriptionsByAttributesAndValues(Map<String, Object> attributesAndValues, Predicate<Subscription> subscriptionPredicate) {
+        Collection<Subscription> result = new ArrayList<>();
+        for (Map.Entry<String, Object> attributeEntry : attributesAndValues.entrySet()) {
+            result.addAll(getByAttributeConditionInnerAttributes(attributeEntry.getKey(), (String) attributeEntry.getValue(), subscriptionPredicate));
+        }
+        result.addAll(getByAttributeConditionOuterAttributes(attributesAndValues, subscriptionPredicate));
+        return result.stream().map(Subscription::getId).collect(Collectors.toSet());
+    }
+
+    @Override
     public void close() {
         client.close();
     }
 
-    @Override
     public Collection<Subscription> getByAttributeConditionInnerAttributes(
             String field,
             String value,
@@ -127,7 +139,7 @@ public class MongoDbNotificationPersistence implements NotificationPersistence {
         subQueryNeq.put("conditions.conditionType", "NE");
 
         FindIterable<Document> findIterable = collection.find(Filters.or(
-               Filters.or(subQueryEq, subQueryNeq)
+                Filters.or(subQueryEq, subQueryNeq)
         ));
         for (Document document : findIterable) {
             Subscription converted = converter.buildObjectFromTO(document);
@@ -139,7 +151,6 @@ public class MongoDbNotificationPersistence implements NotificationPersistence {
         return result;
     }
 
-    @Override
     public Collection<Subscription> getByAttributeConditionOuterAttributes(
             Map<String, Object> attributesAndValues,
             Predicate<Subscription> subscriptionPredicate) {
@@ -157,7 +168,10 @@ public class MongoDbNotificationPersistence implements NotificationPersistence {
                 Filters.elemMatch("conditions",
                         Filters.and(
                                 fieldsQueries
-                        ))
+                        )),
+                Filters.elemMatch("conditions",
+                        Filters.eq("conditionType", "NEQ_OR_NULL")
+                )
         ));
 
         for (Document document : findIterable) {

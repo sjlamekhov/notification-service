@@ -4,71 +4,51 @@ import com.notificationservice.model.Condition;
 import com.notificationservice.model.ConditionType;
 import com.notificationservice.model.Subscription;
 import com.notificationservice.ecxeptions.NotFoundException;
-import com.notificationservice.persistence.NotificationPersistence;
+import com.notificationservice.persistence.SubscriptionPersistence;
 
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class SubscriptionService {
 
-    protected final NotificationPersistence notificationPersistence;
+    protected final SubscriptionPersistence subscriptionPersistence;
 
-    public SubscriptionService(NotificationPersistence notificationPersistence) {
-        this.notificationPersistence = notificationPersistence;
+    public SubscriptionService(SubscriptionPersistence subscriptionPersistence) {
+        this.subscriptionPersistence = subscriptionPersistence;
     }
 
     public Subscription create(Subscription object) {
-        return notificationPersistence.add(object);
+        return subscriptionPersistence.add(object);
     }
 
     public Subscription update(Subscription object) {
-        return notificationPersistence.update(object);
+        return subscriptionPersistence.update(object);
     }
 
     public boolean isIdPresented(String id) {
-        return notificationPersistence.isIdPresented(id);
+        return subscriptionPersistence.isIdPresented(id);
     }
 
     public Subscription getObject(String id) {
         if (!isIdPresented(id)) {
             throw new NotFoundException(String.format("Object with id %s does not exist", id));
         }
-        return notificationPersistence.getById(id);
+        return subscriptionPersistence.getById(id);
     }
 
     public Collection<Subscription> getByIds(Collection<String> ids) {
-        return notificationPersistence.getByIds(ids);
+        return subscriptionPersistence.getByIds(ids);
     }
 
     public Collection<String> getSubscriptionByAttributesAndValues(Map<String, Object> attributesAndValues) {
-        Set<String> result = new HashSet<>();
         Predicate<Subscription> subscriptionPredicate = s -> isSubscriptionAppliable.test(s, attributesAndValues);
-        for (Map.Entry<String, Object> attributeItem : attributesAndValues.entrySet()) {
-            if (!(attributeItem.getValue() instanceof String)) {
-                continue;
-            }
-            Collection<Subscription> subscriptions = notificationPersistence.getByAttributeConditionInnerAttributes(
-                    attributeItem.getKey(),
-                    (String) attributeItem.getValue(),
-                    subscriptionPredicate
-            );
-            result.addAll(subscriptions.stream()
-                    .map(Subscription::getId)
-                    .collect(Collectors.toSet()));
-        }
 
-        Collection<Subscription> subscriptions = notificationPersistence.getByAttributeConditionOuterAttributes(attributesAndValues, subscriptionPredicate);
-        result.addAll(subscriptions.stream()
-                .map(Subscription::getId)
-                .collect(Collectors.toSet()));
-
-        return result;
+        return subscriptionPersistence.getSubscriptionsByAttributesAndValues(attributesAndValues, subscriptionPredicate);
     }
 
     public static BiPredicate<Subscription, Map<String, Object>> isSubscriptionAppliable = (subscription, attributes) -> {
-        if (subscription.getConditions() == null ||subscription.getConditions().isEmpty()) {
+        if (subscription.getConditions() == null || subscription.getConditions().isEmpty()) {
             return false;
         }
         for (Condition condition : subscription.getConditions()) {
@@ -77,7 +57,11 @@ public class SubscriptionService {
             String value = condition.getValue();
 
             if (!attributes.keySet().contains(field)) {
-                continue;
+                if (conditionType == ConditionType.NEQ_OR_NULL) {
+                    continue;
+                } else {
+                    return false;
+                }
             }
             if (!(attributes.get(field) instanceof String)) {
                 continue;
@@ -98,12 +82,12 @@ public class SubscriptionService {
     };
 
     public boolean deleteObject(String id) {
-        notificationPersistence.deleteObject(id);
+        subscriptionPersistence.deleteObject(id);
         return true;
     }
 
     public void close() {
-        notificationPersistence.close();
+        subscriptionPersistence.close();
     }
 
 

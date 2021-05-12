@@ -1,15 +1,12 @@
 package com.notificationservice.persistence;
 
 import com.notificationservice.model.Subscription;
-import org.bson.Document;
-import org.bson.conversions.Bson;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Predicate;
 
-
-public interface NotificationPersistence {
+public interface SubscriptionPersistence {
 
     Subscription add(Subscription subscription);
 
@@ -23,12 +20,7 @@ public interface NotificationPersistence {
 
     void deleteObject(String id);
 
-    Collection<Subscription> getByAttributeConditionInnerAttributes(
-            String field,
-            String value,
-            Predicate<Subscription> subscriptionPredicate);
-
-    Collection<Subscription> getByAttributeConditionOuterAttributes(
+    Collection<String> getSubscriptionsByAttributesAndValues(
             Map<String, Object> attributesAndValues,
             Predicate<Subscription> subscriptionPredicate);
 

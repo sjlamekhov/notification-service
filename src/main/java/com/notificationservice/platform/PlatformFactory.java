@@ -4,7 +4,7 @@ import com.notificationservice.ConfigurationService;
 import com.notificationservice.consumers.kafkaConsumer.IncomingMessagesConsumer;
 import com.notificationservice.consumers.kafkaConsumer.KafkaIncomingMessageConsumer;
 import com.notificationservice.model.RecipientType;
-import com.notificationservice.persistence.MongoDbNotificationPersistence;
+import com.notificationservice.persistence.mongoDbSubscriptionPersistence.MongoDbSubscriptionPersistence;
 import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
@@ -19,7 +19,7 @@ public class PlatformFactory {
     public static Platform buildPlatformFromConfig(Properties properties) {
         ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
 
-        MongoDbNotificationPersistence mongoDbNotificationPersistence = new MongoDbNotificationPersistence(
+        MongoDbSubscriptionPersistence mongoDbNotificationPersistence = new MongoDbSubscriptionPersistence(
                 configurationService.getSubscriptionsDaoConfig(),
                 new SubscriptionDocumentConverter()
         );

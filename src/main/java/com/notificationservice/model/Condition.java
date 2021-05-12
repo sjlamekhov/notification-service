@@ -61,4 +61,9 @@ public class Condition {
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Condition{%s %s %s}", field, conditionType, value);
+    }
 }

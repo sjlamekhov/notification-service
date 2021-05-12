@@ -3,8 +3,8 @@ package services.consumerService;
 import com.notificationservice.ConfigurationService;
 import com.notificationservice.model.RecipientType;
 import com.notificationservice.persistence.DaoConfig;
-import com.notificationservice.persistence.MongoDbNotificationPersistence;
-import com.notificationservice.persistence.NotificationPersistence;
+import com.notificationservice.persistence.mongoDbSubscriptionPersistence.MongoDbSubscriptionPersistence;
+import com.notificationservice.persistence.SubscriptionPersistence;
 import com.notificationservice.persistence.converters.SubscriptionDocumentConverter;
 import com.notificationservice.services.ConsumerService;
 import com.notificationservice.services.InformerService;
@@ -25,12 +25,12 @@ public class MongoDbConsumerServiceTest extends ConsumerServiceTest {
         Properties properties = FileUtils.propertiesFromResource("mongodb.properties");
         ConfigurationService configurationService = ConfigurationService.buildConfigurationFromProperties(properties);
         DaoConfig daoConfig = configurationService.getSubscriptionsDaoConfig();
-        NotificationPersistence mongoDbNotificationPersistence = new MongoDbNotificationPersistence(
+        SubscriptionPersistence mongoDbSubscriptionPersistence = new MongoDbSubscriptionPersistence(
                 daoConfig,
                 new SubscriptionDocumentConverter()
         );
         this.daoConfig = daoConfig;
-        this.subscriptionService = new SubscriptionService(mongoDbNotificationPersistence);
+        this.subscriptionService = new SubscriptionService(mongoDbSubscriptionPersistence);
         this.informerService = new InformerService();
         this.fromInformerService = new ArrayList<>();
         informerService.registerConsumer(RecipientType.EMAIL,

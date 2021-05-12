@@ -22,7 +22,13 @@ public class SubscriptionDocumentConverter implements ObjectConverter<Subscripti
     Function<Document, Condition> conditionConverter = to -> {
         Condition condition = new Condition();
         condition.setField(to.getString("field"));
-        condition.setConditionType("EQ".equals(to.getString("conditionType")) ? ConditionType.EQ : ConditionType.NE);
+        if ("EQ".equals(to.getString("conditionType"))) {
+            condition.setConditionType(ConditionType.EQ);
+        } else if ("NE".equals(to.getString("conditionType"))) {
+            condition.setConditionType(ConditionType.NE);
+        } else if ("NEQ_OR_NULL".equals(to.getString("conditionType"))) {
+            condition.setConditionType(ConditionType.NEQ_OR_NULL);
+        }
         condition.setValue(to.getString("value"));
         return condition;
     };
